@@ -7,7 +7,15 @@
 # To use different pin names or restore modes, edit gevako-rs5.yaml instead.
 # ---------------------------------------------------------------------------------------
 
+esp32:
+  board: esp32-c6-devkitm-1
+  variant: esp32c6
+  framework:
+    type: esp-idf
+    version: recommended
+
 substitutions:
+  bluetooth_on_boot: "250"
 
   # --- RELAY OUTPUTS ---
   # GPIO pins connected to the 5 relay channels.

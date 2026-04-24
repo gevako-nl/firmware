@@ -21,7 +21,7 @@ substitutions:
 
 esphome:
   on_boot:
-    priority: 250  # Run after hardware init, before WiFi connects.
+    priority: ${bluetooth_on_boot}  # Run after hardware init, before WiFi connects.
     then:
       - if:
           condition:

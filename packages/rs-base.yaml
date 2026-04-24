@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------------------
 # Gevako RS - Base Package
 # ---------------------------------------------------------------------------------------
-# Shared configuration for all RS5 variants.
+# Shared configuration for all RS variants.
 # Includes: outputs, sensors, diagnostics, physical button, factory reset.
 #
 # Do not use this file directly — it is included via gevako-rs5.yaml.
@@ -16,16 +16,9 @@ esphome:
   project:
     name: ${project_name}
     version: ${firmware_version}
-    dashboard_import:
+  dashboard_import:
     package_import_url: ${dashboard_import}
     import_full_config: true
-
-esp32:
-  board: esp32-c6-devkitm-1
-  variant: esp32c6
-  framework:
-    type: esp-idf
-    version: recommended
 
 # --- LOGGER & API ---
 # Logger: outputs logs to the serial port.

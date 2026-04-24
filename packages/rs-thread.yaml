@@ -19,7 +19,7 @@
 esphome:
   # Custom provisioning component — handles NVS storage and USB serial input.
   includes:
-    - thread_provisioning.h
+    - https://raw.githubusercontent.com/gevako-nl/firmware/main/packages/thread_provisioning.h
   on_boot:
     priority: -100.0
     then:
