@@ -17,8 +17,8 @@ esphome:
     name: ${project_name}
     version: ${firmware_version}
     dashboard_import:
-    package_import_url: ${dashboard_import}
-    import_full_config: true
+      package_import_url: ${dashboard_import}
+      import_full_config: true
 
 # --- LOGGER & API ---
 # Logger: outputs logs to the serial port.
