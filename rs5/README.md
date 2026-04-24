@@ -10,8 +10,7 @@ It features five relays with a common power source input, capable of handling de
 </a>
 
 🔗 **Hardware Details & Store:**
-* [Gevako RS5 - Thread Edition](https://www.gevako.com/shop/gevako-rs5-thread-smart-relay-home-assistant/)
-* [Gevako RS5 - WiFi Edition](https://www.gevako.com/shop/gevako-rs5-wifi-smart-relay-home-assistant/)
+* [Gevako RS5 - Smart Relay](https://www.gevako.com/shop/gevako-rs5-smart-relay-home-assistant/)
 
 ---
 
