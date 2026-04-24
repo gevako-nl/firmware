@@ -28,7 +28,7 @@ substitutions:
   device_name: "gevako-rs5"
   friendly_name: "Gevako RS5"
   project_name: "Gevako.Gevako RS5 Firmware"
-  firmware_version: "1.5.0"
+  firmware_version: "1.5.1"
   ota_password: "gevako-ota"
   name_add_mac_suffix: "true"
   logger_level: "INFO"
