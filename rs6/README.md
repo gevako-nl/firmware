@@ -27,7 +27,7 @@ It features six fully independent relays, each capable of switching up to 16 A a
 | `GPIO04` | Relay Output 5            |
 | `GPIO05` | Relay Output 6            |
 | `GPIO08` | Status LED (Green)        |
-| `GPIO09` | BOOT Button               |
+| `GPIO09` | BOOT/Reset Button         |
 | `GPIO14` | Power source detection    |
 
 ### Electrical Schematic & Terminals
