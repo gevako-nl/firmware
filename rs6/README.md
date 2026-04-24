@@ -10,8 +10,7 @@ It features six fully independent relays, each capable of switching up to 16 A a
 </a>
 
 🔗 **Hardware Details & Store:**
-* [Gevako RS6 - Thread Edition](https://www.gevako.com/shop/gevako-rs6-thread-smart-relay-home-assistant/)
-* [Gevako RS6 - WiFi Edition](https://www.gevako.com/shop/gevako-rs6-wifi-smart-relay-home-assistant/)
+* [Gevako RS6 - Smart Relay](https://www.gevako.com/shop/gevako-rs6-smart-relay-home-assistant/)
 
 ---
 
