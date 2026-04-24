@@ -68,6 +68,7 @@ We believe in open-source collaboration. Feel free to explore the code, report i
 - 🐛 **Found a bug?** Open an issue right here on GitHub.
 - 💬 **Need help?** Visit our [Customer Support page](https://www.gevako.com/contact/).
 - 📧 **Engineering:** <a href="mailto:info@gevako.com">info@gevako.com</a>
+- 🌐 <a href="https://www.gevako.com/" target="_blank">www.gevako.com</a>
 
 ---
 
