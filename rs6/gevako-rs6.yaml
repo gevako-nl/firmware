@@ -28,10 +28,11 @@ substitutions:
   device_name: "gevako-rs6"
   friendly_name: "Gevako RS6"
   project_name: "Gevako.Gevako RS6 Firmware"
-  firmware_version: "1.5.0"
+  firmware_version: "1.5.1"
   ota_password: "gevako-ota"
   name_add_mac_suffix: "true"
   logger_level: "INFO"
+  dashboard_import: "github://gevako-nl/firmware/rs6/gevako-rs6.yaml@main"
 
   # --- OUTPUT NAMES ---
   name_output_1: "Output 1"
@@ -53,12 +54,25 @@ substitutions:
 
 # --- PACKAGES ---
 packages:
-  hardware:     !include packages/rs6-hardware.yaml
-  base:         !include packages/rs-base.yaml
+  base:
+    url: https://github.com/gevako-nl/firmware
+    ref: main
+    files: [packages/rs-base.yaml]
+    refresh: 1d
 
-  # Choose only one connectivity option, remove # and place #
-  connectivity: !include packages/rs-wifi.yaml    # ← WiFi
-  #connectivity: !include packages/rs-thread.yaml   # ← Thread
+  hardware:
+    url: https://github.com/gevako-nl/firmware
+    ref: main
+    files: [packages/rs6-hardware.yaml]
+    refresh: 1d
+
+  connectivity:
+    url: https://github.com/gevako-nl/firmware
+    ref: main
+    # Choose only one connectivity option, remove # and place #
+    files: [packages/rs-wifi.yaml]      # ← WiFi
+    #files: [packages/rs-thread.yaml]   # ← Thread
+    refresh: 1d
 
 # --- OPTIONAL OPTIONS FOR WIFI ---
 # --- FIXED SSID FOR WIFI (OPTIONAL) ---
