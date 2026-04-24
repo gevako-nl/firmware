@@ -1,0 +1,226 @@
+# ---------------------------------------------------------------------------------------
+# Gevako RS - WiFi Package
+# ---------------------------------------------------------------------------------------
+# WiFi connectivity, Bluetooth Proxy controls and LED logic.
+#
+# Do not use this file directly — it is included via gevako-rs5.yaml.
+#
+# LED behavior:
+#   Blinking (1s) = WiFi not connected
+#   Solid ON      = WiFi connected
+# ---------------------------------------------------------------------------------------
+
+substitutions:
+  # AP hotspot name — shown when no WiFi connection is available.
+  # Can be overridden in gevako-rsx.yaml if needed.
+  ap_ssid: "Gevako-RS-AP"
+
+# --- BOOT LOGIC ---
+# Restores the Bluetooth Radio and Scanner state after a reboot.
+# Ensures hardware matches the saved switch states in Home Assistant.
+
+esphome:
+  on_boot:
+    priority: 250  # Run after hardware init, before WiFi connects.
+    then:
+      - if:
+          condition:
+            switch.is_off: bluetooth_radio_switch
+          then:
+            # Radio was OFF before reboot — disable BLE hardware and sync UI.
+            - logger.log: "Boot: Master Switch is OFF. Disabling BLE Hardware..."
+            - ble.disable:
+            - switch.template.publish:
+                id: proxy_scanner_switch
+                state: OFF
+          else:
+            # Radio is ON — check if the scanner should also be running.
+            - if:
+                condition:
+                  switch.is_off: proxy_scanner_switch
+                then:
+                  - logger.log: "Boot: Radio ON but Scanner OFF. Stopping scan..."
+                  - esp32_ble_tracker.stop_scan:
+
+# Base BLE component — required for Bluetooth Proxy hardware control.
+esp32_ble:
+  id: ble_hardware
+
+# --- WIFI ---
+
+wifi:
+  power_save_mode: none
+
+  # Fallback AP: creates a hotspot when the router connection fails.
+  ap:
+    ssid: ${ap_ssid}
+
+  # Emergency recovery: if WiFi is lost for more than 1 minute,
+  # re-enable Bluetooth so the device stays reachable via BLE proxy.
+  on_disconnect:
+    then:
+      - delay: 60s
+      - if:
+          condition:
+            not:
+              wifi.connected:
+          then:
+            - logger.log: "WiFi disconnected for >1min. Emergency BLE enable."
+            - ble.enable:
+            - switch.turn_on: bluetooth_radio_switch
+
+# Captive Portal: web interface for initial WiFi setup.
+captive_portal:
+
+# Web Server: allows viewing device status via browser (IP address).
+web_server:
+  port: 80
+  version: 3
+
+# Improv Serial: allows setting WiFi credentials via USB serial.
+improv_serial:
+
+# ESP32 Improv: allows setting WiFi credentials via Bluetooth Low Energy.
+esp32_improv:
+  authorizer: none
+
+# Bluetooth Proxy: passive BLE scanner forwarding devices to Home Assistant.
+esp32_ble_tracker:
+  id: ble_tracker
+  scan_parameters:
+    interval: 1100ms
+    window: 300ms
+    active: false  # Passive scanning for better stability.
+
+bluetooth_proxy:
+  active: false
+
+# --- WIFI DIAGNOSTICS ---
+# These sensors appear in the 'Diagnostic' section of Home Assistant.
+
+sensor:
+  # WiFi signal strength in dBm.
+  - platform: wifi_signal
+    name: "7. WiFi Signal Strength"
+    update_interval: 60s
+    entity_category: diagnostic
+    icon: "mdi:wifi"
+
+text_sensor:
+  # Current IP address assigned by the router.
+  - platform: wifi_info
+    ip_address:
+      name: "6. IP Address"
+      entity_category: diagnostic
+      icon: "mdi:ip-network"
+    # SSID of the connected WiFi network.
+    ssid:
+      name: "5. Connected SSID"
+      entity_category: diagnostic
+      icon: "mdi:wifi-settings"
+
+# --- BLUETOOTH PROXY CONTROLS ---
+# These switches appear in the 'Configuration' card in Home Assistant.
+
+switch:
+  # Master Bluetooth Radio switch.
+  # Turning this OFF disables all BLE hardware (scanner stops automatically).
+  # Turning this ON re-enables BLE hardware but does not auto-start the scanner.
+  - platform: template
+    name: "4. Bluetooth Radio"
+    id: bluetooth_radio_switch
+    icon: "mdi:bluetooth"
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - ble.enable:
+      - logger.log: "BLE Hardware enabled"
+    turn_off_action:
+      # Always stop the scanner before disabling the radio.
+      - if:
+          condition:
+            switch.is_on: proxy_scanner_switch
+          then:
+            - switch.turn_off: proxy_scanner_switch
+      - ble.disable:
+      - logger.log: "BLE Hardware disabled"
+
+  # Bluetooth Proxy Scanner switch.
+  # Controls whether the BLE scanner is actively running.
+  # If the radio is OFF, turning this ON will automatically enable the radio first.
+  - platform: template
+    name: "5. Bluetooth Proxy Scanner"
+    id: proxy_scanner_switch
+    icon: "mdi:bluetooth-transfer"
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: false  # State is set manually after confirming the action succeeded.
+    turn_on_action:
+      - if:
+          condition:
+            switch.is_on: bluetooth_radio_switch
+          then:
+            # Radio already active — start the scanner directly.
+            - esp32_ble_tracker.start_scan:
+            - logger.log: "Scanner started (radio already active)"
+            - switch.template.publish:
+                id: proxy_scanner_switch
+                state: ON
+          else:
+            # Radio is off — enable it first, then start the scanner.
+            - logger.log: "Enabling BLE Radio first, then starting scanner..."
+            - switch.turn_on: bluetooth_radio_switch
+            - delay: 500ms  # Allow hardware time to initialize.
+            - esp32_ble_tracker.start_scan:
+            - logger.log: "Scanner started (radio auto-enabled)"
+            - switch.template.publish:
+                id: proxy_scanner_switch
+                state: ON
+    turn_off_action:
+      - esp32_ble_tracker.stop_scan:
+      - logger.log: "Scanner stopped"
+      - switch.template.publish:
+          id: proxy_scanner_switch
+          state: OFF
+
+# --- INTERVALS ---
+
+interval:
+  # LED indication: runs every 1 second.
+  # Does not interfere with factory reset or button scripts.
+  # - Solid ON:  WiFi connected.
+  # - Blinking:  WiFi not connected.
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            and:
+              - not:
+                  script.is_running: factory_reset_sequence
+              - not:
+                  script.is_running: button_press_handler
+          then:
+            - if:
+                condition:
+                  wifi.connected:
+                then:
+                  - light.turn_on: green_led
+                else:
+                  - light.toggle: green_led
+
+  # BLE Scanner maintenance: restarts the scanner every 5 minutes.
+  # This is a proven workaround for ESP32-C6 passive scan buffer overflow issues.
+  - interval: 5min
+    then:
+      - if:
+          condition:
+            and:
+              - switch.is_on: bluetooth_radio_switch
+              - switch.is_on: proxy_scanner_switch
+          then:
+            - logger.log: "Maintenance: Restarting BLE Scanner..."
+            - esp32_ble_tracker.stop_scan:
+            - delay: 2s
+            - esp32_ble_tracker.start_scan:
+            - logger.log: "BLE Scanner restarted successfully"

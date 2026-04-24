@@ -1,0 +1,299 @@
+# ---------------------------------------------------------------------------------------
+# Gevako RS - Base Package
+# ---------------------------------------------------------------------------------------
+# Shared configuration for all RS5 variants.
+# Includes: outputs, sensors, diagnostics, physical button, factory reset.
+#
+# Do not use this file directly — it is included via gevako-rs5.yaml.
+# ---------------------------------------------------------------------------------------
+
+# --- CORE CONFIGURATION ---
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: ${name_add_mac_suffix}
+  project:
+    name: ${project_name}
+    version: ${firmware_version}
+
+esp32:
+  board: esp32-c6-devkitm-1
+  variant: esp32c6
+  framework:
+    type: esp-idf
+    version: recommended
+
+# --- LOGGER & API ---
+# Logger: outputs logs to the serial port.
+# hardware_uart may be overridden by the connectivity package (e.g. USB_SERIAL_JTAG for Thread).
+logger:
+  level: ${logger_level}
+
+# API: enables the native API for Home Assistant integration.
+api:
+  #encryption:
+    #key: "xxx"  # Uncomment and fill in when using API encryption.
+
+# OTA: enables Over-The-Air firmware updates.
+ota:
+  - platform: esphome
+    password: ${ota_password}
+
+# --- GLOBALS ---
+# Internal variables used for logic and state tracking.
+
+globals:
+  # Counter used by the factory reset countdown sequence.
+  - id: reset_timer_value
+    type: int
+    initial_value: '0'
+
+  # Tracks how long the physical button has been held (in milliseconds).
+  - id: button_held_time
+    type: int
+    initial_value: '0'
+    restore_value: false
+
+# --- STATUS LED ---
+
+# GPIO output driver for the green status LED.
+output:
+  - platform: gpio
+    pin: ${gpio_green_led_output}
+    id: "green_led_output"
+
+# Light component wrapping the LED output.
+# LED behavior is driven by the connectivity package (Thread or WiFi).
+light:
+  - platform: binary
+    name: "Status LED"
+    output: green_led_output
+    id: green_led
+    internal: true
+
+# --- SENSORS & DIAGNOSTICS ---
+# These sensors appear in the 'Diagnostic' section of Home Assistant.
+
+sensor:
+  # Device uptime in seconds, updated every minute.
+  - platform: uptime
+    name: "3. Uptime"
+    update_interval: 60s
+    entity_category: diagnostic
+    icon: "mdi:timer-outline"
+
+  # Internal ESP32 chip temperature.
+  - platform: internal_temperature
+    name: "2. Internal Temperature"
+    entity_category: diagnostic
+    icon: "mdi:thermometer"
+
+  # Visual countdown timer shown during the factory reset sequence.
+  - platform: template
+    name: "4. Factory Reset Timer"
+    id: reset_countdown_sensor
+    icon: "mdi:timer-alert-outline"
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    entity_category: diagnostic
+
+# --- TEXT SENSORS ---
+
+text_sensor:
+  # Power source detection: reads the GPIO state and returns a readable label.
+  - platform: template
+    name: "1. Power Source"
+    icon: "mdi:power-plug"
+    lambda: |-
+      if (id(power_source_state).state) {
+        return {"230 VAC (Mains)"};
+      } else {
+        return {"5 VDC (USB-C)"};
+      }
+    update_interval: 10s
+    entity_category: diagnostic
+
+# --- BINARY SENSORS ---
+
+binary_sensor:
+  # Internal helper for power source detection.
+  # HIGH = Mains power, LOW = USB power.
+  - platform: gpio
+    pin:
+      number: ${gpio_power_source_state}
+      mode: INPUT
+    id: power_source_state
+    internal: true
+
+  # Physical button on GPIO9 (active low).
+  # Short press (<2s):  no action, LED resumes normal state.
+  # Hold 2–10s:        triggers a reboot.
+  # Hold 10s+:         triggers a full factory reset.
+  - platform: gpio
+    pin:
+      number: ${gpio_physical_button}
+      mode: INPUT
+      inverted: true  # Active low — button pulls GPIO to GND when pressed.
+    id: physical_button
+    name: "Physical Button"
+    internal: true
+    filters:
+      - delayed_on: 50ms  # Debounce filter.
+    on_press:
+      - script.execute: button_press_handler
+    on_release:
+      - script.stop: button_press_handler
+      # Button held 2–10s → reboot with LED confirmation.
+      - if:
+          condition:
+            lambda: 'return id(button_held_time) >= 2000 && id(button_held_time) < 10000;'
+          then:
+            - logger.log: "Button held 2-10s: Triggering Reboot"
+            - repeat:
+                count: 3
+                then:
+                  - light.toggle: green_led
+                  - delay: 100ms
+            - delay: 500ms
+            - button.press: internal_reboot_core
+      # Reset held time so the LED interval resumes control immediately.
+      - globals.set:
+          id: button_held_time
+          value: '0'
+
+switch:
+  # --- FACTORY RESET SAFEGUARD ---
+  # This switch must be turned ON before a factory reset can be confirmed.
+  # It starts a 10-second countdown; if not confirmed in time, it locks itself again.
+  - platform: template
+    name: "2. Unlock Factory Reset"
+    id: factory_reset_unlock
+    icon: "mdi:shield-lock-open-outline"
+    entity_category: config
+    optimistic: true
+    turn_on_action:
+      - script.execute: factory_reset_sequence
+    turn_off_action:
+      - script.stop: factory_reset_sequence
+      - globals.set:
+          id: reset_timer_value
+          value: '0'
+      - sensor.template.publish:
+          id: reset_countdown_sensor
+          state: 0
+      - light.turn_on: green_led
+
+# --- BUTTONS ---
+
+button:
+  # Reboots the device.
+  - platform: restart
+    name: "1. Reboot Device"
+    icon: "mdi:restart"
+    entity_category: config
+
+  # Internal helper: performs a full factory reset (wipes NVS, OTA state, all settings).
+  - platform: factory_reset
+    id: internal_factory_reset_core
+    internal: true
+
+  # Internal helper: performs a soft reboot.
+  - platform: restart
+    id: internal_reboot_core
+    internal: true
+
+  # Confirm Factory Reset
+  # Wipes ALL data and resets the device to factory defaults.
+  # Only executes if the "Unlock Factory Reset" switch is ON.
+  - platform: template
+    name: "3. Confirm Factory Reset"
+    id: factory_reset_confirm
+    icon: "mdi:alert-remove"
+    entity_category: config
+    on_press:
+      then:
+        - if:
+            condition:
+              switch.is_on: factory_reset_unlock
+            then:
+              - logger.log: "FACTORY RESET TRIGGERED BY USER"
+              - script.stop: factory_reset_sequence
+              - repeat:
+                  count: 10
+                  then:
+                    - light.toggle: green_led
+                    - delay: 50ms
+              - button.press: internal_factory_reset_core
+            else:
+              - logger.log: "Refused: Device locked."
+
+# --- SCRIPTS ---
+
+script:
+  # Handles the 10-second safety countdown for factory reset.
+  # Blinks the LED and counts down the timer sensor.
+  # Automatically locks the device if no confirmation is received in time.
+  - id: factory_reset_sequence
+    then:
+      - logger.log: "Unlock Active! Countdown started."
+      - globals.set:
+          id: reset_timer_value
+          value: '10'
+      - repeat:
+          count: 10
+          then:
+            - sensor.template.publish:
+                id: reset_countdown_sensor
+                state: !lambda 'return id(reset_timer_value);'
+            # Blink LED (250ms period: 125ms ON / 125ms OFF).
+            - repeat:
+                count: 4
+                then:
+                  - light.toggle: green_led
+                  - delay: 125ms
+                  - light.toggle: green_led
+                  - delay: 125ms
+            - globals.set:
+                id: reset_timer_value
+                value: !lambda 'return id(reset_timer_value) - 1;'
+      - logger.log: "Timeout: Reset options locked automatically."
+      - switch.turn_off: factory_reset_unlock
+      - sensor.template.publish:
+          id: reset_countdown_sensor
+          state: 0
+
+  # Handles timing and LED feedback for physical button hold actions.
+  # - Turns LED off immediately on press.
+  # - After 2s, starts blinking to indicate hold is registered.
+  # - After 10s, triggers a factory reset.
+  - id: button_press_handler
+    then:
+      - light.turn_off: green_led
+      - globals.set:
+          id: button_held_time
+          value: '0'
+      # Wait 2 seconds before signalling hold.
+      - delay: 2s
+      - globals.set:
+          id: button_held_time
+          value: '2000'
+      # Blink for 8 seconds (32 cycles × 250ms = 8000ms).
+      - repeat:
+          count: 32
+          then:
+            - light.toggle: green_led
+            - delay: 125ms
+            - light.toggle: green_led
+            - delay: 125ms
+            - globals.set:
+                id: button_held_time
+                value: !lambda 'return id(button_held_time) + 250;'
+      # Reached here = button held for 10+ seconds → factory reset.
+      - logger.log: "Button held 10s: Triggering Factory Reset"
+      - repeat:
+          count: 10
+          then:
+            - light.toggle: green_led
+            - delay: 50ms
+      - button.press: internal_factory_reset_core

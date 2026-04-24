@@ -1,0 +1,129 @@
+# ---------------------------------------------------------------------------------------
+# Gevako RS - Thread Package
+# ---------------------------------------------------------------------------------------
+# OpenThread connectivity, TLV provisioning, Thread diagnostics and LED logic.
+#
+# Do not use this file directly — it is included via gevako-rs5.yaml.
+#
+# TLV Provisioning:
+# The Thread TLV is NOT stored in the YAML. Connect via USB and open a
+# serial terminal (115200 baud). Send: TLV:<hex><Enter>
+# The TLV is stored in NVS and survives reboots.
+# Factory Reset also clears the TLV → re-provisioning required.
+#
+# LED behavior:
+#   Blinking (~1s) = no TLV provisioned OR Thread not connected
+#   Solid ON       = TLV provisioned AND Thread connected
+# ---------------------------------------------------------------------------------------
+
+esphome:
+  # Custom provisioning component — handles NVS storage and USB serial input.
+  includes:
+    - thread_provisioning.h
+  on_boot:
+    priority: -100.0
+    then:
+      - lambda: |-
+          thread_prov::on_boot();
+
+# USB_SERIAL_JTAG is required for the Thread variant.
+# WiFi is not available so the logger must output via the built-in USB port.
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+  baud_rate: 115200
+
+# --- CONNECTIVITY ---
+
+network:
+  enable_ipv6: true
+
+# TLV is not stored in the YAML — loaded at runtime from NVS.
+# The network_key below is a placeholder to satisfy the ESPHome validator.
+# It is overwritten at boot by the value stored in NVS.
+openthread:
+  id: ot
+  network_key: "00000000000000000000000000000000"  # Placeholder — overwritten by NVS
+
+# --- THREAD DIAGNOSTICS ---
+# These sensors appear in the 'Diagnostic' section of Home Assistant.
+
+text_sensor:
+  # OpenThread network information.
+  - platform: openthread_info
+    ip_address:
+      name: "14. IP Address"
+    channel:
+      name: "8. Channel"
+    role:
+      name: "7. Device Role"
+    rloc16:
+      name: "9. RLOC16"
+    ext_addr:
+      name: "12. Extended Address"
+    eui64:
+      name: "11. EUI64"
+    network_name:
+      name: "6. Network Name"
+    network_key:
+      name: "15. Network Key"
+    pan_id:
+      name: "10. PAN ID"
+    ext_pan_id:
+      name: "13. Extended PAN ID"
+
+  # Shows whether the device has been provisioned with a TLV dataset.
+  - platform: template
+    name: "5. Provisioning Status"
+    id: provisioning_status
+    icon: "mdi:check-network-outline"
+    lambda: |-
+      if (thread_prov::is_provisioned()) {
+        return {"Provisioned"};
+      } else {
+        return {"Waiting for TLV (USB)"};
+      }
+    update_interval: 5s
+    entity_category: diagnostic
+
+# --- INTERVALS ---
+
+interval:
+  # LED indication: runs every 200ms.
+  # Does not interfere with factory reset or button scripts.
+  # - Solid ON:      TLV provisioned AND Thread connected.
+  # - Slow blink:    TLV provisioned but Thread not yet connected (~1s period).
+  # - Slow blink:    No TLV provisioned (~1s period).
+  - interval: 200ms
+    then:
+      - lambda: |-
+          static uint8_t tick = 0;
+          static bool led_state = false;
+          tick++;
+
+          // Do not interfere with factory reset or button scripts.
+          if (id(factory_reset_sequence).is_running() || id(button_press_handler).is_running())
+            return;
+
+          if (thread_prov::is_provisioned() && id(ot).is_connected()) {
+            // Solid ON: provisioned and connected.
+            if (!led_state) {
+              led_state = true;
+              auto call = id(green_led).make_call();
+              call.set_state(true);
+              call.perform();
+            }
+          } else {
+            // Slow blink (~1s = 5 ticks × 200ms): not provisioned or not connected.
+            if (tick % 5 == 0) {
+              led_state = !led_state;
+              auto call = id(green_led).make_call();
+              call.set_state(led_state);
+              call.perform();
+            }
+          }
+
+  # USB serial polling: checks for incoming TLV provisioning data every 50ms.
+  - interval: 50ms
+    then:
+      - lambda: |-
+          thread_prov::uart_poll();

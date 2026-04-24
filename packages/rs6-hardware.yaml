@@ -1,0 +1,73 @@
+# ---------------------------------------------------------------------------------------
+# Gevako RS6 - Hardware Package
+# ---------------------------------------------------------------------------------------
+# GPIO pin assignments for the Gevako RS6 (ESP32-C6).
+#
+# These values are fixed to the RS6 hardware layout and should never be changed.
+# To use different pin names or restore modes, edit gevako-rs6.yaml instead.
+# ---------------------------------------------------------------------------------------
+
+substitutions:
+
+  # --- RELAY OUTPUTS ---
+  # GPIO pins connected to the 6 relay channels.
+  gpio_output_1: GPIO0  # Do not modify
+  gpio_output_2: GPIO1  # Do not modify
+  gpio_output_3: GPIO2  # Do not modify
+  gpio_output_4: GPIO3  # Do not modify
+  gpio_output_5: GPIO4  # Do not modify
+  gpio_output_6: GPIO5  # Do not modify
+
+  # --- STATUS LED ---
+  # Green LED used for connectivity and status indication.
+  gpio_green_led_output: GPIO8  # Do not modify
+
+  # --- INPUTS ---
+
+  # Power Source Detection
+  # HIGH = 230 VAC (Mains), LOW = 5 VDC (USB-C)
+  gpio_power_source_state: GPIO14  # Do not modify
+
+  # Physical Button
+  # Used for reboot (2–10s hold) and factory reset (10s+ hold).
+  gpio_physical_button: GPIO9  # Do not modify
+
+# --- RELAY OUTPUTS ---
+# The six relay channels. Names and restore modes are set in gevako-rs5.yaml.
+
+switch:
+  - platform: gpio
+    pin: ${gpio_output_1}
+    name: ${name_output_1}
+    restore_mode: ${rm_output_1}
+    id: output_1
+
+  - platform: gpio
+    pin: ${gpio_output_2}
+    name: ${name_output_2}
+    restore_mode: ${rm_output_2}
+    id: output_2
+
+  - platform: gpio
+    pin: ${gpio_output_3}
+    name: ${name_output_3}
+    restore_mode: ${rm_output_3}
+    id: output_3
+
+  - platform: gpio
+    pin: ${gpio_output_4}
+    name: ${name_output_4}
+    restore_mode: ${rm_output_4}
+    id: output_4
+
+  - platform: gpio
+    pin: ${gpio_output_5}
+    name: ${name_output_5}
+    restore_mode: ${rm_output_5}
+    id: output_5
+
+  - platform: gpio
+    pin: ${gpio_output_6}
+    name: ${name_output_6}
+    restore_mode: ${rm_output_6}
+    id: output_6
