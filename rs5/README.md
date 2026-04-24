@@ -26,7 +26,7 @@ It features five relays with a common power source input, capable of handling de
 | `GPIO04` | Relay Output 4            |
 | `GPIO05` | Relay Output 5            |
 | `GPIO08` | Status LED (Green)        |
-| `GPIO09` | BOOT Button               |
+| `GPIO09` | BOOT/Reset Button         |
 | `GPIO14` | Power source detection    |
 
 ### Electrical Schematic & Terminals
