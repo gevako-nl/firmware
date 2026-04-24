@@ -1,0 +1,75 @@
+# ---------------------------------------------------------------------------------------
+# Project:      Gevako RS6 - Smart Relay Firmware
+# Author:       Gevako B.V.
+# Website:      https://gevako.com
+# License:      MIT License (see LICENSE file)
+# Copyright:    (c) 2026 Gevako B.V.
+# ---------------------------------------------------------------------------------------
+# DISCLAIMER:
+# This software is provided "as is", without warranty of any kind.
+# Use and modify at your own risk.
+# ---------------------------------------------------------------------------------------
+# HARDWARE INFO:
+# Model:        Gevako RS6 (ESP32-C6)
+# Revision:     V2.0.0 or later
+# ---------------------------------------------------------------------------------------
+# DESCRIPTION:
+# This firmware provides control over 6 relays, status LED indication and
+# power source detection.
+# ---------------------------------------------------------------------------------------
+# HOW TO SWITCH PROTOCOL:
+# Uncomment the desired connectivity line and comment out the other.
+# ---------------------------------------------------------------------------------------
+# --- SUBSTITUTIONS ---
+# Edit these values to customize your device.
+# GPIO pins are defined in packages/rs6-hardware.yaml — do not edit those.
+
+substitutions:
+  device_name: "gevako-rs6"
+  friendly_name: "Gevako RS6"
+  project_name: "Gevako.Gevako RS6 Firmware"
+  firmware_version: "1.5.0"
+  ota_password: "gevako-ota"
+  name_add_mac_suffix: "true"
+  logger_level: "INFO"
+
+  # --- OUTPUT NAMES ---
+  name_output_1: "Output 1"
+  name_output_2: "Output 2"
+  name_output_3: "Output 3"
+  name_output_4: "Output 4"
+  name_output_5: "Output 5"
+  name_output_6: "Output 6"
+
+  # --- RESTORE MODES ---
+  # Options: RESTORE_DEFAULT_OFF, RESTORE_DEFAULT_ON, RESTORE_INVERTED_DEFAULT_OFF,
+  #          RESTORE_INVERTED_DEFAULT_ON, ALWAYS_OFF, ALWAYS_ON, DISABLED
+  rm_output_1: RESTORE_DEFAULT_OFF
+  rm_output_2: RESTORE_DEFAULT_OFF
+  rm_output_3: RESTORE_DEFAULT_OFF
+  rm_output_4: RESTORE_DEFAULT_OFF
+  rm_output_5: RESTORE_DEFAULT_OFF
+  rm_output_6: RESTORE_DEFAULT_OFF
+
+# --- PACKAGES ---
+packages:
+  hardware:     !include packages/rs6-hardware.yaml
+  base:         !include packages/rs-base.yaml
+
+  # Choose only one connectivity option, remove # and place #
+  connectivity: !include packages/rs-wifi.yaml    # ← WiFi
+  #connectivity: !include packages/rs-thread.yaml   # ← Thread
+
+# --- OPTIONAL OPTIONS FOR WIFI ---
+# --- FIXED SSID FOR WIFI (OPTIONAL) ---
+# Remove all # and fill parameters in secrets.yaml
+#wifi:
+  #ssid: !secret wifi_ssid
+  #password: !secret wifi_password
+
+# --- STATIC IP ADDRESS FOR WIFI, FIXED SSID REQUIRED (OPTIONAL) ---
+# Remove all # and fill in paramaters
+  #manual_ip:
+    #static_ip: 192.168.x.x
+    #gateway: 192.168.x.x
+    #subnet: 255.255.255.0
