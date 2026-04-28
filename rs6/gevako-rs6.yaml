@@ -28,9 +28,9 @@ substitutions:
   device_name: "gevako-rs6"
   friendly_name: "Gevako RS6"
   project_name: "Gevako.Gevako RS6 Firmware"
-  firmware_version: "1.5.3"
+  firmware_version: "1.5.4"
   ota_password: "gevako-ota"
-  name_add_mac_suffix: "true"
+  name_add_mac_suffix: "false"
   logger_level: "INFO"
   dashboard_import: "github://gevako-nl/firmware/rs6/gevako-rs6.yaml@main"
 
