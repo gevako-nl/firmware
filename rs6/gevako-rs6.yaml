@@ -28,7 +28,7 @@ substitutions:
   device_name: "gevako-rs6"
   friendly_name: "Gevako RS6"
   project_name: "Gevako.Gevako RS6 Firmware"
-  firmware_version: "1.5.1"
+  firmware_version: "1.5.3"
   ota_password: "gevako-ota"
   name_add_mac_suffix: "true"
   logger_level: "INFO"
@@ -51,6 +51,25 @@ substitutions:
   rm_output_4: RESTORE_DEFAULT_OFF
   rm_output_5: RESTORE_DEFAULT_OFF
   rm_output_6: RESTORE_DEFAULT_OFF
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: ${name_add_mac_suffix}
+  project:
+    name: ${project_name}
+    version: ${firmware_version}
+
+esp32:
+  board: esp32-c6-devkitm-1
+  variant: esp32c6
+  framework:
+    type: esp-idf
+    version: recommended
+
+dashboard_import:
+  package_import_url: ${dashboard_import}
+  import_full_config: false
 
 # --- PACKAGES ---
 packages:
