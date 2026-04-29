@@ -67,9 +67,7 @@ esp32:
     type: esp-idf
     version: recommended
 
-dashboard_import:
-  package_import_url: ${dashboard_import}
-  import_full_config: false
+
 
 # --- PACKAGES ---
 packages:
