@@ -53,9 +53,6 @@ substitutions:
   rm_output_6: RESTORE_DEFAULT_OFF
 
 esphome:
-  name: ${device_name}
-  friendly_name: ${friendly_name}
-  name_add_mac_suffix: ${name_add_mac_suffix}
 
 # --- PACKAGES ---
 packages:
