@@ -28,7 +28,7 @@ substitutions:
   device_name: "gevako-rs6"
   friendly_name: "Gevako RS6"
   project_name: "Gevako.Gevako RS6 Firmware"
-  firmware_version: "1.5.6"
+  firmware_version: "1.5.1"
   ota_password: "gevako-ota"
   name_add_mac_suffix: "true"
   logger_level: "INFO"
@@ -52,8 +52,7 @@ substitutions:
   rm_output_5: RESTORE_DEFAULT_OFF
   rm_output_6: RESTORE_DEFAULT_OFF
 
-esphome:
-  name: ${device_name}
+
 
 # --- PACKAGES ---
 packages:
@@ -90,3 +89,8 @@ packages:
     #static_ip: 192.168.x.x
     #gateway: 192.168.x.x
     #subnet: 255.255.255.0
+
+
+esphome:
+  #name: ${device_name}
+  #friendly_name: ${friendly_name}
