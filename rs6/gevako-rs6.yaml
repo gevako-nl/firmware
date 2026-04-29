@@ -52,7 +52,9 @@ substitutions:
   rm_output_5: RESTORE_DEFAULT_OFF
   rm_output_6: RESTORE_DEFAULT_OFF
 
-
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
 
 # --- PACKAGES ---
 packages:
@@ -89,8 +91,3 @@ packages:
     #static_ip: 192.168.x.x
     #gateway: 192.168.x.x
     #subnet: 255.255.255.0
-
-
-esphome:
-  #name: ${device_name}
-  friendly_name: ${friendly_name}
