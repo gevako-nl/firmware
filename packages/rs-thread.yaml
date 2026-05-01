@@ -23,16 +23,16 @@ esphome:
       - lambda: |-
           thread_prov::on_boot();
 
-# Custom provisioning component — handles NVS storage and USB serial input.
+# Custom provisioning component
 external_components:
   - source:
       type: git
       url: https://github.com/gevako-nl/firmware
       ref: main
-    components: [thread_provisioning]
-    refresh: 1d
+    components: [ thread_provisioning ]
+    refresh: 0s
 
-# Activate the thread_provisioning component
+# Activate the component
 thread_provisioning:
   id: my_thread_prov
 
