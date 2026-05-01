@@ -17,24 +17,14 @@
 # ---------------------------------------------------------------------------------------
 
 esphome:
+  # Custom provisioning component — handles NVS storage and USB serial input.
+  includes:
+    - thread_provisioning.h
   on_boot:
     priority: -100.0
     then:
       - lambda: |-
           thread_prov::on_boot();
-
-# Custom provisioning component
-external_components:
-  - source:
-      type: git
-      url: https://github.com/gevako-nl/firmware
-      ref: main
-    components: [ thread_provisioning ]
-    refresh: 0s
-
-# Activate the component
-thread_provisioning:
-  id: my_thread_prov
 
 # USB_SERIAL_JTAG is required for the Thread variant.
 # WiFi is not available so the logger must output via the built-in USB port.
