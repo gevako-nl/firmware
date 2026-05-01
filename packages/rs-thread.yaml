@@ -16,8 +16,12 @@
 #   Solid ON       = TLV provisioned AND Thread connected
 # ---------------------------------------------------------------------------------------
 
-# Activates the thread_provisioning external component
-thread_provisioning:
+esphome:
+  on_boot:
+    priority: -100.0
+    then:
+      - lambda: |-
+          thread_prov::on_boot();
 
 # Custom provisioning component — handles NVS storage and USB serial input.
 external_components:
@@ -28,13 +32,9 @@ external_components:
     components: [thread_provisioning]
     refresh: 1d
 
-
-esphome:
-  on_boot:
-    priority: -100.0
-    then:
-      - lambda: |-
-          thread_prov::on_boot();
+# Activate the thread_provisioning component
+thread_provisioning:
+  id: my_thread_prov
 
 # USB_SERIAL_JTAG is required for the Thread variant.
 # WiFi is not available so the logger must output via the built-in USB port.
