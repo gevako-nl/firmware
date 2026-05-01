@@ -3,15 +3,7 @@
 /**
  * GEVAKO Thread Provisioning
  * ──────────────────────────
- * Stores the OpenThread TLV dataset in NVS so it does not need to be
- * hardcoded in the YAML. On boot, the TLV is loaded from NVS and applied
- * to the OpenThread instance.
- *
- * Provisioning via USB (USB_SERIAL_JTAG — built-in USB port of ESP32-C6):
- *   Send:   TLV:<hex_string><Enter>
- *   Reply:  OK or ERROR, followed by an automatic reboot.
- *
- * Factory reset (ESPHome button) also clears the NVS TLV → re-provisioning required.
+ * Beschermd met 'inline' keywords om linker-fouten te voorkomen.
  */
 
 #include <string>
@@ -42,15 +34,16 @@
 
 namespace thread_prov {
 
-static bool s_uart_ready  = false;
-static bool s_provisioned = false;   // true once TLV has been successfully applied
-static std::string s_rx_buf;
+// 'inline' variabelen zorgen ervoor dat er maar één instantie bestaat in het hele programma
+inline bool s_uart_ready  = false;
+inline bool s_provisioned = false;   // true once TLV has been successfully applied
+inline std::string s_rx_buf;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NVS helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-bool nvs_save(const std::string& hex) {
+inline bool nvs_save(const std::string& hex) {
     nvs_handle_t h;
     if (nvs_open(PROV_NVS_NS, NVS_READWRITE, &h) != ESP_OK) {
         ESP_LOGE(PROV_TAG, "NVS open (write) failed");
@@ -64,7 +57,7 @@ bool nvs_save(const std::string& hex) {
     return ok;
 }
 
-std::string nvs_load() {
+inline std::string nvs_load() {
     nvs_handle_t h;
     if (nvs_open(PROV_NVS_NS, NVS_READONLY, &h) != ESP_OK)
         return "";   // namespace does not exist yet = not provisioned
@@ -87,7 +80,7 @@ std::string nvs_load() {
 // Apply OpenThread dataset
 // ─────────────────────────────────────────────────────────────────────────────
 
-bool apply_tlv(const std::string& hex) {
+inline bool apply_tlv(const std::string& hex) {
     if (hex.empty() || hex.size() % 2 != 0) {
         ESP_LOGE(PROV_TAG, "Invalid TLV (length=%u)", (unsigned)hex.size());
         return false;
@@ -132,15 +125,12 @@ bool apply_tlv(const std::string& hex) {
 // USB provisioning interface
 // ─────────────────────────────────────────────────────────────────────────────
 
-void usb_write(const char* msg) {
+inline void usb_write(const char* msg) {
     usb_serial_jtag_write_bytes((const uint8_t*)msg, strlen(msg), 0);
 }
 
-void uart_start() {
+inline void uart_start() {
     if (s_uart_ready) return;
-
-    // ESPHome logger already installs the USB_SERIAL_JTAG driver — do not install again.
-    // Reuse the existing driver directly.
     s_uart_ready = true;
 
     vTaskDelay(pdMS_TO_TICKS(200));
@@ -149,13 +139,13 @@ void uart_start() {
         "\r\n╔══════════════════════════════════╗\r\n"
         "║  GEVAKO Thread Provisioning      ║\r\n"
         "╚══════════════════════════════════╝\r\n"
-        "Send:  TLV:<hex_string><Enter>\r\n\r\n> "
+        "Send:   TLV:<hex_string><Enter>\r\n\r\n> "
     );
 
     ESP_LOGW(PROV_TAG, "Provisioning mode active — waiting for TLV via USB");
 }
 
-void uart_poll() {
+inline void uart_poll() {
     if (!s_uart_ready) return;
 
     uint8_t data[128];
@@ -170,7 +160,6 @@ void uart_poll() {
         if (c == '\r' || c == '\n') {
             usb_write("\r\n");
 
-            // Strip trailing whitespace
             while (!s_rx_buf.empty() && (unsigned char)s_rx_buf.back() < 32)
                 s_rx_buf.pop_back();
 
@@ -186,7 +175,7 @@ void uart_poll() {
                     usb_write("\r\n ERROR: Invalid TLV — check the hex string.\r\n> ");
                 }
             } else if (!s_rx_buf.empty()) {
-                usb_write("  Usage: TLV:<hex_string>\r\n> ");
+                usb_write("   Usage: TLV:<hex_string>\r\n> ");
             } else {
                 usb_write("> ");
             }
@@ -199,19 +188,13 @@ void uart_poll() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Entry points (called from ESPHome YAML)
+// Entry points
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Call in: esphome > on_boot (priority: -100.0)
- * Loads TLV from NVS and applies it. If no TLV is found,
- * starts the USB interface for provisioning.
- */
-void on_boot() {
+inline void on_boot() {
     std::string tlv = nvs_load();
     if (!tlv.empty()) {
-        ESP_LOGI(PROV_TAG, "NVS TLV found (%u chars) — applying...",
-                 (unsigned)tlv.size());
+        ESP_LOGI(PROV_TAG, "NVS TLV found (%u chars) — applying...", (unsigned)tlv.size());
         if (!apply_tlv(tlv)) {
             ESP_LOGE(PROV_TAG, "TLV apply failed — entering provisioning mode");
             uart_start();
@@ -222,7 +205,6 @@ void on_boot() {
     }
 }
 
-/** Returns true if a valid TLV has been loaded from NVS */
-bool is_provisioned() { return s_provisioned; }
+inline bool is_provisioned() { return s_provisioned; }
 
 } // namespace thread_prov
